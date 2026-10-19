@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Stock</title>
+<style>
+  body{font-family:system-ui,sans-serif;margin:0;padding:16px;background:#f4f5f7;color:#222}
+  h1{font-size:22px;margin:0 0 12px}
+  h2{font-size:18px;margin:24px 0 8px}
+  .wrap{overflow-x:auto;margin-top:10px}
+  table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px}
+  th,td{padding:6px;border-bottom:1px solid #e3e3e3;text-align:left}
+  th{background:#eceef2;font-size:14px}
+  input{width:100%;box-sizing:border-box;padding:8px;border:1px solid #ccc;border-radius:6px;font-size:15px}
+  button{padding:8px 14px;border:0;border-radius:6px;background:#2563eb;color:#fff;font-size:15px;cursor:pointer}
+  button.del{background:#dc2626;padding:6px 10px}
+  #form{display:grid;gap:8px;max-width:420px}
+  #msg{min-height:22px;margin:6px 0;font-size:14px}
+</style>
+</head>
+<body>
+  <h1>📦 Stock</h1>
+  <div id="msg"></div>
+  <input id="buscar" placeholder="Buscar...">
+  <div class="wrap"><table id="tabla"></table></div>
+
+  <h2>Agregar</h2>
+  <form id="form"></form>
+
+<script>
+  // ====== CONFIGURACIÓN ======
+  const URL_API = 'https://script.google.com/macros/s/AKfycbxHOV5_JvaI8SQNngLMVFm61qKBinAWNuYvECYeyNU9SjH2xd4isOV3W4616ShN4hurog/exec; // la que termina en /exec
+  const CLAVE   = 'Benz';              // la misma que en Code.gs
+
+  let encabezados = [], filas = [];
+  const msg = t => (document.getElementById('msg').textContent = t);
+
+  async function cargar() {
+    msg('Cargando...');
+    try {
+      const r = await fetch(URL_API + '?clave=' + encodeURIComponent(CLAVE));
+      const j = await r.json();
+      if (!j.ok) return msg('Error: ' + j.error);
+      encabezados = j.encabezados;
+      filas = j.datos;
+      armarForm();
+      dibujar();
+      msg('');
+    } catch (e) {
+      msg('No se pudo conectar: ' + e);
+    }
+  }
+
+  async function enviar(datos) {
+    msg('Guardando...');
+    try {
+      // text/plain evita el "preflight" CORS, que Apps Script no soporta
+      const r = await fetch(URL_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ clave: CLAVE, ...datos })
+      });
+      const j = await r.json();
+      if (!j.ok) { msg('Error: ' + j.error); return false; }
+      msg('Guardado ✔');
+      return true;
+    } catch (e) {
+      msg('No se pudo guardar: ' + e);
+      return false;
+    }
+  }
+
+  function dibujar() {
+    const q = document.getElementById('buscar').value.toLowerCase();
+    const t = document.getElementById('tabla');
+    t.innerHTML = '';
+
+    const head = t.insertRow();
+    encabezados.forEach(h => {
+      const th = document.createElement('th');
+      th.textContent = h;
+      head.appendChild(th);
+    });
+    head.appendChild(document.createElement('th'));
+
+    filas
+      .filter(f => encabezados.some(h => String(f[h]).toLowerCase().includes(q)))
+      .forEach(f => {
+        const tr = t.insertRow();
+        encabezados.forEach((h, i) => {
+          const inp = document.createElement('input');
+          inp.value = f[h];
+          inp.onchange = () => enviar({ accion: 'actualizar', fila: f.fila, columna: i + 1, valor: inp.value });
+          tr.insertCell().appendChild(inp);
+        });
+        const b = document.createElement('button');
+        b.textContent = '🗑';
+        b.className = 'del';
+        b.onclick = async () => {
+          if (confirm('¿Borrar esta fila?') && await enviar({ accion: 'borrar', fila: f.fila })) cargar();
+        };
+        tr.insertCell().appendChild(b);
+      });
+  }
+
+  function armarForm() {
+    const form = document.getElementById('form');
+    form.innerHTML = '';
+    encabezados.forEach(h => {
+      const inp = document.createElement('input');
+      inp.placeholder = h;
+      inp.name = h;
+      form.appendChild(inp);
+    });
+    const b = document.createElement('button');
+    b.textContent = 'Agregar';
+    form.appendChild(b);
+  }
+
+  document.getElementById('form').onsubmit = async e => {
+    e.preventDefault();
+    const valores = encabezados.map(h => e.target.elements[h].value);
+    if (await enviar({ accion: 'agregar', valores })) cargar();
+  };
+
+  document.getElementById('buscar').oninput = dibujar;
+  cargar();
+</script>
+</body>
+</html>
