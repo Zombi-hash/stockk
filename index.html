@@ -3,41 +3,47 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Stock</title>
+<title>Control de Stock</title>
 <style>
-  body{font-family:system-ui,sans-serif;margin:0;padding:16px;background:#f4f5f7;color:#222}
-  h1{font-size:22px;margin:0 0 12px}
-  h2{font-size:18px;margin:24px 0 8px}
-  .wrap{overflow-x:auto;margin-top:10px}
-  table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px}
-  th,td{padding:6px;border-bottom:1px solid #e3e3e3;text-align:left}
-  th{background:#eceef2;font-size:14px}
-  input{width:100%;box-sizing:border-box;padding:8px;border:1px solid #ccc;border-radius:6px;font-size:15px}
-  button{padding:8px 14px;border:0;border-radius:6px;background:#2563eb;color:#fff;font-size:15px;cursor:pointer}
+  body{font-family:system-ui,sans-serif;margin:0;padding:16px;background:#f4f5f7;color:#222;max-width:1100px;margin:auto}
+  h1{font-size:24px;margin:0 0 12px;color:#1e3a8a}
+  h2{font-size:18px;margin:24px 0 8px;color:#374151}
+  .wrap{overflow-x:auto;margin-top:10px;box-shadow:0 2px 4px rgba(0,0,0,0.05);border-radius:8px}
+  table{width:100%;border-collapse:collapse;background:#fff}
+  th,td{padding:10px;border-bottom:1px solid #e3e3e3;text-align:left;vertical-align:middle}
+  th{background:#f1f5f9;font-size:14px;color:#475569}
+  input{width:100%;box-sizing:border-box;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:14px}
+  button{padding:8px 12px;border:0;border-radius:6px;background:#2563eb;color:#fff;font-size:14px;cursor:pointer;font-weight:600}
+  button:hover{opacity:0.9}
   button.del{background:#dc2626;padding:6px 10px}
-  #form{display:grid;gap:8px;max-width:420px}
-  #msg{min-height:22px;margin:6px 0;font-size:14px}
+  .btn-qty{background:#0ea5e9;padding:6px 10px;font-size:16px;font-weight:bold;margin:0 2px}
+  .btn-qty.minus{background:#f97316}
+  .qty-box{display:flex;align-items:center;gap:4px;min-width:140px}
+  #form{display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:10px;background:#fff;padding:16px;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,0.05)}
+  #form button{grid-column:1/-1;margin-top:8px}
+  #buscar{margin-bottom:12px;padding:10px;font-size:16px}
+  #msg{min-height:24px;margin:8px 0;font-size:14px;font-weight:500;color:#059669}
 </style>
 </head>
 <body>
-  <h1>📦 Stock</h1>
+  <h1>📦 Control de Stock y Depósitos</h1>
   <div id="msg"></div>
-  <input id="buscar" placeholder="Buscar...">
+  <input id="buscar" placeholder="🔍 Buscar producto o depósito...">
   <div class="wrap"><table id="tabla"></table></div>
 
-  <h2>Agregar</h2>
+  <h2>➕ Agregar Nuevo Producto</h2>
   <form id="form"></form>
 
 <script>
   // ====== CONFIGURACIÓN ======
-  const URL_API = 'https://script.google.com/macros/s/AKfycbxHOV5_JvaI8SQNngLMVFm61qKBinAWNuYvECYeyNU9SjH2xd4isOV3W4616ShN4hurog/exec';
-  const CLAVE   = 'Benz';              // la misma que en Code.gs
+  const URL_API = 'https://script.google.com/macros/s/AKfycbxHOV5_JvaI8SQNngLMVFm61qKBinAWNuYvECYeyNU9SjH2xd4isOV3W4616ShN4hurog/exec'; // Tu URL /exec
+  const CLAVE   = 'Benz';              // Tu clave
 
   let encabezados = [], filas = [];
   const msg = t => (document.getElementById('msg').textContent = t);
 
   async function cargar() {
-    msg('Cargando...');
+    msg('Cargando datos...');
     try {
       const r = await fetch(URL_API + '?clave=' + encodeURIComponent(CLAVE));
       const j = await r.json();
@@ -53,9 +59,8 @@
   }
 
   async function enviar(datos) {
-    msg('Guardando...');
+    msg('Guardando cambios...');
     try {
-      // text/plain evita el "preflight" CORS, que Apps Script no soporta
       const r = await fetch(URL_API, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -63,7 +68,8 @@
       });
       const j = await r.json();
       if (!j.ok) { msg('Error: ' + j.error); return false; }
-      msg('Guardado ✔');
+      msg('¡Actualizado con éxito ✔!');
+      setTimeout(() => msg(''), 2000);
       return true;
     } catch (e) {
       msg('No se pudo guardar: ' + e);
@@ -82,25 +88,69 @@
       th.textContent = h;
       head.appendChild(th);
     });
-    head.appendChild(document.createElement('th'));
+    const thAccion = document.createElement('th');
+    thAccion.textContent = 'Acciones rápidas / Borrar';
+    head.appendChild(thAccion);
 
     filas
       .filter(f => encabezados.some(h => String(f[h]).toLowerCase().includes(q)))
       .forEach(f => {
         const tr = t.insertRow();
         encabezados.forEach((h, i) => {
-          const inp = document.createElement('input');
-          inp.value = f[h];
-          inp.onchange = () => enviar({ accion: 'actualizar', fila: f.fila, columna: i + 1, valor: inp.value });
-          tr.insertCell().appendChild(inp);
+          const td = tr.insertCell();
+          const esCantidad = h.toLowerCase().includes('cantidad');
+
+          if (esCantidad) {
+            // Contenedor especial con botones + y -
+            const div = document.createElement('div');
+            div.className = 'qty-box';
+
+            const btnMinus = document.createElement('button');
+            btnMinus.textContent = '-';
+            btnMinus.className = 'btn-qty minus';
+            btnMinus.onclick = async () => {
+              const cantidadCambio = prompt('¿Cuántas unidades deseas RESTAR?', '1');
+              if (cantidadCambio && !isNaN(cantidadCambio)) {
+                if (await enviar({ accion: 'sumar_restar', fila: f.fila, cantidad: -Math.abs(Number(cantidadCambio)) })) cargar();
+              }
+            };
+
+            const inp = document.createElement('input');
+            inp.value = f[h];
+            inp.style.textAlign = 'center';
+            inp.onchange = () => enviar({ accion: 'actualizar', fila: f.fila, columna: i + 1, valor: inp.value });
+
+            const btnPlus = document.createElement('button');
+            btnPlus.textContent = '+';
+            btnPlus.className = 'btn-qty';
+            btnPlus.onclick = async () => {
+              const cantidadCambio = prompt('¿Cuántas unidades deseas SUMAR?', '1');
+              if (cantidadCambio && !isNaN(cantidadCambio)) {
+                if (await enviar({ accion: 'sumar_restar', fila: f.fila, cantidad: Math.abs(Number(cantidadCambio)) })) cargar();
+              }
+            };
+
+            div.appendChild(btnMinus);
+            div.appendChild(inp);
+            div.appendChild(btnPlus);
+            td.appendChild(div);
+          } else {
+            const inp = document.createElement('input');
+            inp.value = f[h];
+            inp.onchange = () => enviar({ accion: 'actualizar', fila: f.fila, columna: i + 1, valor: inp.value });
+            td.appendChild(inp);
+          }
         });
+
+        // Botón borrar fila
+        const tdDel = tr.insertCell();
         const b = document.createElement('button');
-        b.textContent = '🗑';
+        b.textContent = '🗑 Borrar';
         b.className = 'del';
         b.onclick = async () => {
-          if (confirm('¿Borrar esta fila?') && await enviar({ accion: 'borrar', fila: f.fila })) cargar();
+          if (confirm('¿Estás seguro de borrar este producto?') && await enviar({ accion: 'borrar', fila: f.fila })) cargar();
         };
-        tr.insertCell().appendChild(b);
+        tdDel.appendChild(b);
       });
   }
 
@@ -108,13 +158,23 @@
     const form = document.getElementById('form');
     form.innerHTML = '';
     encabezados.forEach(h => {
+      const wrapper = document.createElement('div');
+      const label = document.createElement('label');
+      label.textContent = h;
+      label.style.display = 'block';
+      label.style.fontSize = '12px';
+      label.style.marginBottom = '4px';
+      label.style.color = '#64748b';
+
       const inp = document.createElement('input');
-      inp.placeholder = h;
+      inp.placeholder = 'Ingresar ' + h;
       inp.name = h;
-      form.appendChild(inp);
+      wrapper.appendChild(label);
+      wrapper.appendChild(inp);
+      form.appendChild(wrapper);
     });
     const b = document.createElement('button');
-    b.textContent = 'Agregar';
+    b.textContent = '💾 Guardar Nuevo Producto';
     form.appendChild(b);
   }
 
