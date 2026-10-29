@@ -42,16 +42,13 @@
   .add-section{background:#fff;padding:16px;border-radius:12px;margin-top:24px;border:1px solid #e2e8f0}
   .btn-main{background:#2563eb;color:#fff;width:100%;padding:12px;border:none;border-radius:8px;font-size:16px;font-weight:bold;cursor:pointer}
 
-  /* --- NUEVO: usuario, pestañas, reposición, historial, login --- */
-  .userbar{font-size:13px;color:#64748b;margin-bottom:12px}
-  .userbar button{background:none;border:none;color:#2563eb;cursor:pointer;font-size:13px;padding:0 0 0 6px}
+  /* --- NUEVO: pestañas, reposición, historial, archivados --- */
   .tabs{display:flex;gap:8px;margin-bottom:16px}
   .tab{flex:1;padding:10px;border:1px solid #cbd5e1;background:#fff;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;color:#334155}
   .tab.activo{background:#0f172a;color:#fff;border-color:#0f172a}
   .filtros{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
   .btn-chip{flex:1;min-width:140px;padding:10px;border-radius:8px;border:1px solid #fcd34d;background:#fffbeb;color:#92400e;font-weight:700;font-size:14px;cursor:pointer}
   .btn-chip.activo{background:#f59e0b;color:#fff;border-color:#f59e0b}
-  .btn-wa{background:#16a34a;color:#fff;border-color:#16a34a}
   .btn-undo{width:100%;padding:12px;border-radius:8px;border:1px solid #cbd5e1;background:#fff;color:#0f172a;font-weight:700;font-size:15px;cursor:pointer;margin-bottom:14px}
   .mov{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px;margin-bottom:10px}
   .mov-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
@@ -64,27 +61,13 @@
   .mov.anulado .mov-prod{text-decoration:line-through}
   .badge{display:inline-block;font-size:11px;background:#e2e8f0;color:#334155;border-radius:6px;padding:2px 6px;margin-left:6px}
   .btn-mini{margin-top:8px;padding:6px 12px;border-radius:6px;border:1px solid #cbd5e1;background:#fff;cursor:pointer;font-weight:600;font-size:13px}
-  #login{position:fixed;inset:0;background:#f4f5f7;display:none;align-items:center;justify-content:center;z-index:2000;padding:16px}
-  .login-box{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:22px;width:100%;max-width:380px;box-shadow:0 4px 18px rgba(0,0,0,0.08)}
-  .login-box h2{margin:0 0 6px;font-size:20px}
-  .login-box p{margin:0 0 16px;color:#64748b;font-size:14px}
-  #loginError{color:#dc2626;font-size:14px;min-height:20px;margin-bottom:10px}
+  .card.inactivo{opacity:.75;background:#f8fafc;border-style:dashed}
+  .btn-gris{border-color:#cbd5e1;background:#fff;color:#334155}
+  .btn-gris.activo{background:#334155;color:#fff;border-color:#334155}
+  .btn-arch{width:100%;padding:10px;border-radius:6px;border:1px solid #cbd5e1;background:#fff;color:#0f172a;margin-top:10px;cursor:pointer;font-weight:bold}
 </style>
 </head>
 <body>
-
-  <div id="login">
-    <div class="login-box">
-      <h2>🔒 Control de stock</h2>
-      <p>Ingresá tu nombre y la clave. Se guarda en este celular, no tenés que repetirlo.</p>
-      <label class="label-title">¿Quién sos?</label>
-      <input id="inUsuario" placeholder="Tu nombre" autocomplete="name">
-      <label class="label-title">Clave</label>
-      <input id="inClave" type="password" placeholder="Clave" autocomplete="current-password">
-      <div id="loginError"></div>
-      <button class="btn-main" id="btnEntrar">Entrar</button>
-    </div>
-  </div>
 
   <div class="header-flex">
     <div>
@@ -93,8 +76,6 @@
     </div>
     <button class="btn-refresh" onclick="actualizarTodo()">🔄 Actualizar</button>
   </div>
-
-  <div class="userbar">👤 <span id="nombreUsuario"></span><button onclick="cerrarSesion()">Salir</button></div>
 
   <div id="msg"></div>
 
@@ -114,7 +95,7 @@
 
     <div class="filtros">
       <button class="btn-chip" id="btnReponer" onclick="toggleReponer()">⚠️ Reponer (0)</button>
-      <button class="btn-chip btn-wa" id="btnWa" onclick="pedirWhatsApp()" style="display:none">📲 Pedido por WhatsApp</button>
+      <button class="btn-chip btn-gris" id="btnArchivados" onclick="toggleArchivados()">📦 Ver archivados (0)</button>
     </div>
 
     <div id="contadorProd" style="font-size:13px;color:#64748b;margin-bottom:12px;"></div>
@@ -135,18 +116,11 @@
 <script>
   // ====== CONFIGURACIÓN ======
   const URL_API = 'https://script.google.com/macros/s/AKfycbxHOV5_JvaI8SQNngLMVFm61qKBinAWNuYvECYeyNU9SjH2xd4isOV3W4616ShN4hurog/exec';
-  // La clave ya no está acá: se pide al entrar y queda guardada en el celular.
-  const WHATSAPP_NUMERO = ''; // opcional, ej: '5491122334455'. Vacío = WhatsApp te deja elegir el contacto.
+  // La app abre directo, sin clave ni nombre. La clave de administrador (para eliminar definitivamente) se pide solo en ese momento y no se guarda.
 
-  let clave = '', usuario = '';
   let encabezados = [], filas = [], depositos = [], historial = [];
-  let hProd = '', hDep = '', hCant = '', hMin = '';
-  let soloReponer = false;
-
-  // ----- almacenamiento local (con protección por si el navegador lo bloquea) -----
-  function lsGet(k) { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }
-  function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
-  function lsDel(k) { try { localStorage.removeItem(k); } catch (e) {} }
+  let hProd = '', hDep = '', hCant = '', hMin = '', hEst = '';
+  let soloReponer = false, verArchivados = false;
 
   function mostrarMsg(t) {
     const m = document.getElementById('msg');
@@ -157,7 +131,7 @@
 
   // ----- llamadas al servidor -----
   async function api(params) {
-    const q = new URLSearchParams(Object.assign({ clave: clave }, params || {}));
+    const q = new URLSearchParams(Object.assign({ accion: 'datos' }, params || {}));
     const r = await fetch(URL_API + '?' + q.toString());
     return r.json();
   }
@@ -168,11 +142,10 @@
       const r = await fetch(URL_API, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(Object.assign({ clave: clave, usuario: usuario }, datos))
+        body: JSON.stringify(datos)
       });
       const j = await r.json();
       if (!j.ok) {
-        if (j.error === 'Clave incorrecta') { cerrarSesion('La clave cambió, ingresá de nuevo.'); return false; }
         alert('Error: ' + j.error);
         return false;
       }
@@ -184,49 +157,12 @@
     }
   }
 
-  // ----- login -----
-  function mostrarLogin(aviso) {
-    document.getElementById('login').style.display = 'flex';
-    document.getElementById('loginError').textContent = aviso || '';
-    document.getElementById('inUsuario').value = usuario;
-  }
-
-  function cerrarSesion(aviso) {
-    clave = '';
-    lsDel('stock_clave');
-    mostrarLogin(aviso);
-  }
-
-  async function entrar() {
-    const u = document.getElementById('inUsuario').value.trim();
-    const k = document.getElementById('inClave').value;
-    const err = document.getElementById('loginError');
-    if (!u || !k) { err.textContent = 'Completá tu nombre y la clave.'; return; }
-    clave = k; usuario = u;
-    err.textContent = 'Verificando...';
-    try {
-      const j = await api();
-      if (!j.ok) { clave = ''; err.textContent = j.error === 'Clave incorrecta' ? 'Clave incorrecta.' : ('Error: ' + j.error); return; }
-      lsSet('stock_clave', clave);
-      lsSet('stock_usuario', usuario);
-      document.getElementById('inClave').value = '';
-      document.getElementById('login').style.display = 'none';
-      document.getElementById('nombreUsuario').textContent = usuario;
-      aplicarDatos(j);
-      mostrarMsg('¡Bienvenido, ' + usuario + '!');
-    } catch (e) {
-      clave = '';
-      err.textContent = 'No se pudo conectar. Revisá tu internet.';
-    }
-  }
-
   // ----- carga de datos -----
   async function cargar() {
     mostrarMsg('Cargando datos...');
     try {
       const j = await api();
       if (!j.ok) {
-        if (j.error === 'Clave incorrecta') { cerrarSesion('La clave cambió, ingresá de nuevo.'); return false; }
         alert('Error: ' + j.error);
         return false;
       }
@@ -247,6 +183,7 @@
     hDep = encabezados.find(h => /dep[oó]sito/i.test(h)) || encabezados[1];
     hCant = encabezados.find(h => String(h).toLowerCase().includes('cantidad')) || encabezados[2];
     hMin = encabezados.find(h => /m[ií]nimo/i.test(h)) || '';
+    hEst = encabezados.find(h => /estado/i.test(h)) || '';
     actualizarSelectDepositos();
     armarFormularioAgregar();
     dibujar();
@@ -276,9 +213,23 @@
     const n = Number(f[hMin]);
     return isNaN(n) ? 0 : n;
   }
+  function esInactivo(f) {
+    return !!hEst && String(f[hEst] || '').trim().toLowerCase() === 'inactivo';
+  }
   function esBajo(f) {
     const m = minDe(f);
-    return m > 0 && (Number(f[hCant]) || 0) <= m;
+    return !esInactivo(f) && m > 0 && (Number(f[hCant]) || 0) <= m;
+  }
+  function toggleArchivados() {
+    verArchivados = !verArchivados;
+    dibujar();
+  }
+  async function cambiarEstado(f, valor) {
+    const txt = valor === 'Inactivo'
+      ? '¿Archivar este producto?\n\nQueda guardado pero oculto de la lista, y lo podés reactivar cuando quieras.'
+      : '¿Reactivar este producto?';
+    if (!confirm(txt)) return;
+    if (await enviar({ accion: 'estado', fila: f.fila, producto: f[hProd], valor: valor })) cargar();
   }
   function toggleReponer() {
     soloReponer = !soloReponer;
@@ -287,25 +238,6 @@
   function bajosDelFiltro() {
     const depFiltro = document.getElementById('filtroDep').value;
     return filas.filter(f => esBajo(f) && (depFiltro === 'todos' || String(f[hDep] || '').trim() === depFiltro));
-  }
-
-  function pedirWhatsApp() {
-    const bajos = bajosDelFiltro();
-    if (!bajos.length) { alert('No hay productos para reponer.'); return; }
-    const porDep = {};
-    bajos.forEach(f => {
-      const d = String(f[hDep] || '').trim() || 'Sin depósito';
-      (porDep[d] = porDep[d] || []).push(f);
-    });
-    let txt = '*Pedido de reposición*\n' + new Date().toLocaleDateString('es-AR') + '\n';
-    Object.keys(porDep).forEach(d => {
-      txt += '\n📦 ' + d + '\n';
-      porDep[d].forEach(f => {
-        txt += '• ' + f[hProd] + ' — hay ' + (Number(f[hCant]) || 0) + ', mínimo ' + minDe(f) + '\n';
-      });
-    });
-    const url = 'https://wa.me/' + WHATSAPP_NUMERO + '?text=' + encodeURIComponent(txt);
-    window.open(url, '_blank');
   }
 
   // ----- pestañas -----
@@ -324,7 +256,6 @@
     try {
       const j = await api({ accion: 'historial', limite: 80 });
       if (!j.ok) {
-        if (j.error === 'Clave incorrecta') { cerrarSesion('La clave cambió, ingresá de nuevo.'); return; }
         cont.textContent = 'Error: ' + j.error;
         return;
       }
@@ -344,14 +275,15 @@
     if (m.tipo === 'Entrada') return { t: '+' + n, c: 'mas' };
     if (m.tipo === 'Salida') return { t: '−' + n, c: 'menos' };
     if (m.tipo === 'Ajuste') return { t: (n > 0 ? '+' : '') + n, c: n >= 0 ? 'mas' : 'menos' };
-    return { t: n + ' u.', c: 'menos' };
+    if (m.tipo === 'Baja') return { t: n + ' u.', c: 'menos' };
+    return { t: n + ' u.', c: '' };
   }
 
   function dibujarHistorial() {
     const cont = document.getElementById('lista-historial');
     cont.innerHTML = '';
     if (!historial.length) { cont.textContent = 'Todavía no hay movimientos.'; return; }
-    const ICONOS = { Entrada: '🟢', Salida: '🔴', Ajuste: '✏️', Baja: '🗑' };
+    const ICONOS = { Entrada: '🟢', Salida: '🔴', Ajuste: '✏️', Baja: '🗑', Archivado: '📦', Reactivado: '♻️' };
     historial.forEach(m => {
       const box = document.createElement('div');
       box.className = 'mov' + ((m.estado === 'Deshecho') ? ' anulado' : '');
@@ -371,7 +303,7 @@
       }
       const meta = document.createElement('div');
       meta.className = 'mov-meta';
-      meta.textContent = m.deposito + ' · ' + m.fecha + (m.usuario ? ' · ' + m.usuario : '') + (m.motivo ? ' · ' + m.motivo : '');
+      meta.textContent = m.deposito + ' · ' + m.fecha + (m.motivo ? ' · ' + m.motivo : '');
       izq.appendChild(prod);
       izq.appendChild(meta);
 
@@ -421,19 +353,24 @@
     contenedor.innerHTML = '';
 
     // botón Reponer
+    const nArch = filas.filter(esInactivo).length;
+    const btnArch = document.getElementById('btnArchivados');
+    btnArch.textContent = '📦 Ver archivados (' + nArch + ')';
+    btnArch.classList.toggle('activo', verArchivados);
+    btnArch.style.display = (nArch > 0 || verArchivados) ? 'block' : 'none';
     const nBajos = bajosDelFiltro().length;
     const btnRep = document.getElementById('btnReponer');
     btnRep.textContent = '⚠️ Reponer (' + nBajos + ')';
     btnRep.classList.toggle('activo', soloReponer);
-    document.getElementById('btnWa').style.display = nBajos > 0 ? 'block' : 'none';
 
     const filtradas = filas.filter(f => {
-      const textoFila = encabezados.filter(h => h !== hMin).map(h => String(f[h] || '')).join(' ').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, "");
+      const textoFila = encabezados.filter(h => h !== hMin && h !== hEst).map(h => String(f[h] || '')).join(' ').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, "");
       const textoCoincide = tokens.every(token => textoFila.includes(token));
 
       const depCoincide = (depFiltro === 'todos' || String(f[hDep] || '').trim() === depFiltro);
       const repCoincide = !soloReponer || esBajo(f);
-      return textoCoincide && depCoincide && repCoincide;
+      const estCoincide = verArchivados ? esInactivo(f) : !esInactivo(f);
+      return textoCoincide && depCoincide && repCoincide && estCoincide;
     });
 
     document.getElementById('contadorProd').textContent = filtradas.length + ' productos encontrados';
@@ -442,7 +379,8 @@
       const bajo = esBajo(f);
       const cero = bajo && (Number(f[hCant]) || 0) === 0;
       const card = document.createElement('div');
-      card.className = 'card' + (cero ? ' cero' : (bajo ? ' bajo' : ''));
+      const inactivo = esInactivo(f);
+      card.className = 'card' + (inactivo ? ' inactivo' : (cero ? ' cero' : (bajo ? ' bajo' : '')));
 
       const header = document.createElement('div');
       header.className = 'card-header';
@@ -454,7 +392,7 @@
 
       const subtitle = document.createElement('div');
       subtitle.className = 'prod-dep';
-      subtitle.textContent = (f[hDep] || 'Sin depósito') + (bajo ? ' · ⚠️ ' + (cero ? 'Sin stock' : 'Stock bajo') + ' (mínimo ' + minDe(f) + ')' : '');
+      subtitle.textContent = (f[hDep] || 'Sin depósito') + (inactivo ? ' · 📦 Archivado' : (bajo ? ' · ⚠️ ' + (cero ? 'Sin stock' : 'Stock bajo') + ' (mínimo ' + minDe(f) + ')' : ''));
 
       info.appendChild(title);
       info.appendChild(subtitle);
@@ -481,7 +419,7 @@
       inputCant.value = '1';
       inputCant.min = '1';
       qtyControl.appendChild(inputCant);
-      card.appendChild(qtyControl);
+      if (!inactivo) card.appendChild(qtyControl);
 
       const rowBtns = document.createElement('div');
       rowBtns.className = 'row-btns';
@@ -504,11 +442,11 @@
 
       rowBtns.appendChild(btnRestar);
       rowBtns.appendChild(btnSumar);
-      card.appendChild(rowBtns);
+      if (!inactivo) card.appendChild(rowBtns);
 
       const toggle = document.createElement('button');
       toggle.className = 'details-toggle';
-      toggle.textContent = '▶ Más opciones (Editar / Borrar)';
+      toggle.textContent = '▶ Más opciones (Editar / Archivar / Eliminar)';
 
       const extra = document.createElement('div');
       extra.className = 'extra-details';
@@ -516,10 +454,11 @@
       toggle.onclick = () => {
         const visible = extra.style.display === 'block';
         extra.style.display = visible ? 'none' : 'block';
-        toggle.textContent = visible ? '▶ Más opciones (Editar / Borrar)' : '▼ Ocultar opciones';
+        toggle.textContent = visible ? '▶ Más opciones (Editar / Archivar / Eliminar)' : '▼ Ocultar opciones';
       };
 
       encabezados.forEach((h, i) => {
+        if (h === hEst) return; // el estado se maneja con Archivar / Reactivar
         const label = document.createElement('label');
         label.style.fontSize = '12px';
         label.style.display = 'block';
@@ -560,6 +499,12 @@
         }
       });
 
+      const btnArc = document.createElement('button');
+      btnArc.className = 'btn-arch';
+      btnArc.textContent = inactivo ? '♻️ Reactivar producto' : '📦 Archivar (dejar inactivo)';
+      btnArc.onclick = () => cambiarEstado(f, inactivo ? 'Activo' : 'Inactivo');
+      extra.appendChild(btnArc);
+
       const btnDel = document.createElement('button');
       btnDel.style.background = '#dc2626';
       btnDel.style.color = '#fff';
@@ -570,10 +515,10 @@
       btnDel.style.marginTop = '10px';
       btnDel.style.cursor = 'pointer';
       btnDel.style.fontWeight = 'bold';
-      btnDel.textContent = '🗑 Eliminar Producto';
+      btnDel.textContent = '🗑 Eliminar definitivamente (pide clave)';
       btnDel.onclick = async () => {
-        if (!confirm('¿Seguro que deseas eliminar este producto?')) return;
-        const claveAdmin = prompt('Clave de administrador para eliminar:');
+        if (!confirm('¿Eliminar DEFINITIVAMENTE este producto?\n\nNo se puede deshacer. Si solo querés sacarlo de la lista, usá "Archivar".')) return;
+        const claveAdmin = prompt('Clave de administrador para eliminar definitivamente:');
         if (!claveAdmin) return;
         if (await enviar({ accion: 'borrar', fila: f.fila, producto: f[hProd], claveAdmin: claveAdmin })) cargar();
       };
@@ -590,6 +535,7 @@
     form.innerHTML = '';
 
     encabezados.forEach(h => {
+      if (h === hEst) return; // se completa solo ("Activo")
       const label = document.createElement('label');
       label.className = 'label-title';
       label.textContent = h;
@@ -627,6 +573,7 @@
     form.onsubmit = async e => {
       e.preventDefault();
       const valores = encabezados.map(h => {
+        if (h === hEst) return 'Activo';
         const elem = e.target.elements[h];
         return elem ? elem.value : '';
       });
@@ -638,20 +585,7 @@
   }
 
   // ----- arranque -----
-  document.getElementById('btnEntrar').onclick = entrar;
-  document.getElementById('inClave').onkeydown = e => { if (e.key === 'Enter') entrar(); };
-
-  (async function iniciar() {
-    clave = lsGet('stock_clave');
-    usuario = lsGet('stock_usuario');
-    if (clave && usuario) {
-      document.getElementById('nombreUsuario').textContent = usuario;
-      const ok = await cargar();
-      if (!ok && !clave) return; // cerrarSesion ya mostró el login
-    } else {
-      mostrarLogin();
-    }
-  })();
+  cargar();
 </script>
 </body>
 </html>
