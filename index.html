@@ -69,7 +69,7 @@
 <script>
   // ====== CONFIGURACIÓN ======
   const URL_API = 'https://script.google.com/macros/s/AKfycbxHOV5_JvaI8SQNngLMVFm61qKBinAWNuYvECYeyNU9SjH2xd4isOV3W4616ShN4hurog/exec'; // Tu URL /exec
-  const CLAVE   = 'Benz';              
+  const CLAVE   = 'Benz';            
 
   let encabezados = [], filas = [], depositos = [];
   
@@ -131,7 +131,10 @@
   }
 
   function dibujar() {
-    const q = document.getElementById('buscar').value.toLowerCase();
+    // Búsqueda flexible e inteligente (ignora tildes, mayúsculas y evalúa palabras clave independientes)
+    const rawQuery = document.getElementById('buscar').value.toLowerCase().trim();
+    const tokens = rawQuery.normalize('NFD').replace(/[\u0300-\u036f]/g, "").split(/\s+/).filter(Boolean);
+
     const depFiltro = document.getElementById('filtroDep').value;
     const contenedor = document.getElementById('lista-tarjetas');
     contenedor.innerHTML = '';
@@ -142,7 +145,10 @@
     const hCant = encabezados.find(h => h.toLowerCase().includes('cantidad')) || encabezados[2];
 
     const filtradas = filas.filter(f => {
-      const textoCoincide = encabezados.some(h => String(f[h] || '').toLowerCase().includes(q));
+      // Unimos todo el texto de la fila normalizado para que encuentre coincidencias sin importar el orden o tildes
+      const textoFila = encabezados.map(h => String(f[h] || '')).join(' ').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, "");
+      const textoCoincide = tokens.every(token => textoFila.includes(token));
+
       const depCoincide = (depFiltro === 'todos' || String(f[hDep] || '').trim() === depFiltro);
       return textoCoincide && depCoincide;
     });
@@ -237,7 +243,7 @@
         inp.value = f[h] || '';
         inp.style.marginBottom = '6px';
         
-        // Si es la columna de depósito en el formulario de edición, la convertimos en un select con los depósitos existentes para evitar errores
+        // Si es la columna de depósito en el formulario de edición, la convertimos en un select con los depósitos existentes
         if (h.toLowerCase().includes('depósito') || h.toLowerCase().includes('deposito')) {
           const selDep = document.createElement('select');
           selDep.style.marginBottom = '6px';
