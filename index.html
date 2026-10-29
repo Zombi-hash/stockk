@@ -6,22 +6,28 @@
 <title>Control de Stock</title>
 <style>
   body{font-family:system-ui,sans-serif;margin:0;padding:16px;background:#f4f5f7;color:#1e293b;max-width:700px;margin:auto}
-  .header-flex{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+  .header-flex{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px}
   h1{font-size:22px;margin:0;color:#0f172a}
-  .sub{color:#64748b;font-size:14px;margin-bottom:16px}
+  .sub{color:#64748b;font-size:14px;margin-bottom:4px}
   .label-title{font-weight:600;font-size:14px;margin-bottom:6px;display:block;color:#334155}
   select, input{width:100%;box-sizing:border-box;padding:12px;border:1px solid #cbd5e1;border-radius:8px;font-size:16px;background:#fff;margin-bottom:14px}
-  
+
   .card{background:#fff;border-radius:12px;padding:16px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,0.06);border:1px solid #e2e8f0}
+  .card.bajo{border-left:6px solid #f59e0b}
+  .card.cero{border-left:6px solid #dc2626}
   .card-header{display:flex;justify-content:space-between;align-items:flex-start}
   .prod-name{font-size:18px;font-weight:bold;color:#0f172a}
   .prod-dep{font-size:13px;color:#64748b;margin-top:2px}
+  .card.bajo .prod-dep{color:#b45309;font-weight:600}
+  .card.cero .prod-dep{color:#b91c1c;font-weight:600}
   .prod-qty{font-size:24px;font-weight:bold;color:#16a34a;text-align:right}
+  .card.bajo .prod-qty{color:#d97706}
+  .card.cero .prod-qty{color:#dc2626}
   .qty-label{font-size:11px;color:#64748b;font-weight:normal;display:block}
-  
+
   .qty-control{display:flex;align-items:center;justify-content:center;gap:10px;margin:14px 0 10px}
   .qty-control input{text-align:center;font-size:20px;font-weight:bold;width:120px;margin:0;padding:8px}
-  
+
   .btn-action{flex:1;padding:12px;border:0;border-radius:8px;font-size:16px;font-weight:bold;cursor:pointer}
   .btn-sumar{background:#16a34a;color:#fff}
   .btn-restar{background:#fff;color:#dc2626;border:1px solid #fecaca}
@@ -29,50 +35,119 @@
 
   .details-toggle{background:none;border:none;color:#2563eb;font-size:13px;cursor:pointer;padding:4px 0;margin-top:6px;text-align:left}
   .extra-details{display:none;margin-top:10px;padding-top:10px;border-top:1px dashed #cbd5e1;font-size:13px;color:#475569}
-  
+
   .btn-refresh{background:#fff;border:1px solid #cbd5e1;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:600}
   #msg{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:10px 20px;border-radius:8px;font-size:14px;display:none;z-index:1000}
-  
+
   .add-section{background:#fff;padding:16px;border-radius:12px;margin-top:24px;border:1px solid #e2e8f0}
   .btn-main{background:#2563eb;color:#fff;width:100%;padding:12px;border:none;border-radius:8px;font-size:16px;font-weight:bold;cursor:pointer}
+
+  /* --- NUEVO: usuario, pestañas, reposición, historial, login --- */
+  .userbar{font-size:13px;color:#64748b;margin-bottom:12px}
+  .userbar button{background:none;border:none;color:#2563eb;cursor:pointer;font-size:13px;padding:0 0 0 6px}
+  .tabs{display:flex;gap:8px;margin-bottom:16px}
+  .tab{flex:1;padding:10px;border:1px solid #cbd5e1;background:#fff;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;color:#334155}
+  .tab.activo{background:#0f172a;color:#fff;border-color:#0f172a}
+  .filtros{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+  .btn-chip{flex:1;min-width:140px;padding:10px;border-radius:8px;border:1px solid #fcd34d;background:#fffbeb;color:#92400e;font-weight:700;font-size:14px;cursor:pointer}
+  .btn-chip.activo{background:#f59e0b;color:#fff;border-color:#f59e0b}
+  .btn-wa{background:#16a34a;color:#fff;border-color:#16a34a}
+  .btn-undo{width:100%;padding:12px;border-radius:8px;border:1px solid #cbd5e1;background:#fff;color:#0f172a;font-weight:700;font-size:15px;cursor:pointer;margin-bottom:14px}
+  .mov{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px;margin-bottom:10px}
+  .mov-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+  .mov-prod{font-weight:700;font-size:15px}
+  .mov-meta{font-size:12px;color:#64748b;margin-top:3px}
+  .mov-cant{font-weight:800;font-size:18px;white-space:nowrap}
+  .mov-cant.mas{color:#16a34a}
+  .mov-cant.menos{color:#dc2626}
+  .mov.anulado{opacity:.55}
+  .mov.anulado .mov-prod{text-decoration:line-through}
+  .badge{display:inline-block;font-size:11px;background:#e2e8f0;color:#334155;border-radius:6px;padding:2px 6px;margin-left:6px}
+  .btn-mini{margin-top:8px;padding:6px 12px;border-radius:6px;border:1px solid #cbd5e1;background:#fff;cursor:pointer;font-weight:600;font-size:13px}
+  #login{position:fixed;inset:0;background:#f4f5f7;display:none;align-items:center;justify-content:center;z-index:2000;padding:16px}
+  .login-box{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:22px;width:100%;max-width:380px;box-shadow:0 4px 18px rgba(0,0,0,0.08)}
+  .login-box h2{margin:0 0 6px;font-size:20px}
+  .login-box p{margin:0 0 16px;color:#64748b;font-size:14px}
+  #loginError{color:#dc2626;font-size:14px;min-height:20px;margin-bottom:10px}
 </style>
 </head>
 <body>
+
+  <div id="login">
+    <div class="login-box">
+      <h2>🔒 Control de stock</h2>
+      <p>Ingresá tu nombre y la clave. Se guarda en este celular, no tenés que repetirlo.</p>
+      <label class="label-title">¿Quién sos?</label>
+      <input id="inUsuario" placeholder="Tu nombre" autocomplete="name">
+      <label class="label-title">Clave</label>
+      <input id="inClave" type="password" placeholder="Clave" autocomplete="current-password">
+      <div id="loginError"></div>
+      <button class="btn-main" id="btnEntrar">Entrar</button>
+    </div>
+  </div>
 
   <div class="header-flex">
     <div>
       <h1>Control de depósitos</h1>
       <div class="sub">Buscá un producto y sumá o restá unidades.</div>
     </div>
-    <button class="btn-refresh" onclick="cargar()">🔄 Actualizar</button>
+    <button class="btn-refresh" onclick="actualizarTodo()">🔄 Actualizar</button>
   </div>
+
+  <div class="userbar">👤 <span id="nombreUsuario"></span><button onclick="cerrarSesion()">Salir</button></div>
 
   <div id="msg"></div>
 
-  <label class="label-title">Depósito</label>
-  <select id="filtroDep" onchange="dibujar()">
-    <option value="todos">Todos los depósitos</option>
-  </select>
+  <div class="tabs">
+    <button class="tab activo" id="tabStock" onclick="setVista('stock')">📦 Stock</button>
+    <button class="tab" id="tabHist" onclick="setVista('historial')">🕘 Historial</button>
+  </div>
 
-  <label class="label-title">Buscar producto</label>
-  <input id="buscar" placeholder="Ej: codo 20" oninput="dibujar()">
+  <div id="vistaStock">
+    <label class="label-title">Depósito</label>
+    <select id="filtroDep" onchange="dibujar()">
+      <option value="todos">Todos los depósitos</option>
+    </select>
 
-  <div id="contadorProd" style="font-size:13px;color:#64748b;margin-bottom:12px;"></div>
+    <label class="label-title">Buscar producto</label>
+    <input id="buscar" placeholder="Ej: codo 20" oninput="dibujar()">
 
-  <div id="lista-tarjetas"></div>
+    <div class="filtros">
+      <button class="btn-chip" id="btnReponer" onclick="toggleReponer()">⚠️ Reponer (0)</button>
+      <button class="btn-chip btn-wa" id="btnWa" onclick="pedirWhatsApp()" style="display:none">📲 Pedido por WhatsApp</button>
+    </div>
 
-  <div class="add-section">
-    <h3 style="margin-top:0;font-size:16px;color:#0f172a">➕ Agregar Producto Nuevo</h3>
-    <form id="formAdd"></form>
+    <div id="contadorProd" style="font-size:13px;color:#64748b;margin-bottom:12px;"></div>
+
+    <div id="lista-tarjetas"></div>
+
+    <div class="add-section">
+      <h3 style="margin-top:0;font-size:16px;color:#0f172a">➕ Agregar Producto Nuevo</h3>
+      <form id="formAdd"></form>
+    </div>
+  </div>
+
+  <div id="vistaHistorial" style="display:none">
+    <button class="btn-undo" onclick="deshacerUltimo()">↩ Deshacer último movimiento</button>
+    <div id="lista-historial"></div>
   </div>
 
 <script>
   // ====== CONFIGURACIÓN ======
-  const URL_API = 'https://script.google.com/macros/s/AKfycbxHOV5_JvaI8SQNngLMVFm61qKBinAWNuYvECYeyNU9SjH2xd4isOV3W4616ShN4hurog/exec'; // Tu URL /exec
-  const CLAVE   = 'Benz';            
+  const URL_API = 'https://script.google.com/macros/s/AKfycbxHOV5_JvaI8SQNngLMVFm61qKBinAWNuYvECYeyNU9SjH2xd4isOV3W4616ShN4hurog/exec';
+  // La clave ya no está acá: se pide al entrar y queda guardada en el celular.
+  const WHATSAPP_NUMERO = ''; // opcional, ej: '5491122334455'. Vacío = WhatsApp te deja elegir el contacto.
 
-  let encabezados = [], filas = [], depositos = [];
-  
+  let clave = '', usuario = '';
+  let encabezados = [], filas = [], depositos = [], historial = [];
+  let hProd = '', hDep = '', hCant = '', hMin = '';
+  let soloReponer = false;
+
+  // ----- almacenamiento local (con protección por si el navegador lo bloquea) -----
+  function lsGet(k) { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  function lsDel(k) { try { localStorage.removeItem(k); } catch (e) {} }
+
   function mostrarMsg(t) {
     const m = document.getElementById('msg');
     m.textContent = t;
@@ -80,23 +155,106 @@
     setTimeout(() => m.style.display = 'none', 3000);
   }
 
+  // ----- llamadas al servidor -----
+  async function api(params) {
+    const q = new URLSearchParams(Object.assign({ clave: clave }, params || {}));
+    const r = await fetch(URL_API + '?' + q.toString());
+    return r.json();
+  }
+
+  async function enviar(datos) {
+    mostrarMsg('Guardando...');
+    try {
+      const r = await fetch(URL_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(Object.assign({ clave: clave, usuario: usuario }, datos))
+      });
+      const j = await r.json();
+      if (!j.ok) {
+        if (j.error === 'Clave incorrecta') { cerrarSesion('La clave cambió, ingresá de nuevo.'); return false; }
+        alert('Error: ' + j.error);
+        return false;
+      }
+      mostrarMsg('Guardado con éxito ✔');
+      return true;
+    } catch (e) {
+      alert('Error de red: ' + e);
+      return false;
+    }
+  }
+
+  // ----- login -----
+  function mostrarLogin(aviso) {
+    document.getElementById('login').style.display = 'flex';
+    document.getElementById('loginError').textContent = aviso || '';
+    document.getElementById('inUsuario').value = usuario;
+  }
+
+  function cerrarSesion(aviso) {
+    clave = '';
+    lsDel('stock_clave');
+    mostrarLogin(aviso);
+  }
+
+  async function entrar() {
+    const u = document.getElementById('inUsuario').value.trim();
+    const k = document.getElementById('inClave').value;
+    const err = document.getElementById('loginError');
+    if (!u || !k) { err.textContent = 'Completá tu nombre y la clave.'; return; }
+    clave = k; usuario = u;
+    err.textContent = 'Verificando...';
+    try {
+      const j = await api();
+      if (!j.ok) { clave = ''; err.textContent = j.error === 'Clave incorrecta' ? 'Clave incorrecta.' : ('Error: ' + j.error); return; }
+      lsSet('stock_clave', clave);
+      lsSet('stock_usuario', usuario);
+      document.getElementById('inClave').value = '';
+      document.getElementById('login').style.display = 'none';
+      document.getElementById('nombreUsuario').textContent = usuario;
+      aplicarDatos(j);
+      mostrarMsg('¡Bienvenido, ' + usuario + '!');
+    } catch (e) {
+      clave = '';
+      err.textContent = 'No se pudo conectar. Revisá tu internet.';
+    }
+  }
+
+  // ----- carga de datos -----
   async function cargar() {
     mostrarMsg('Cargando datos...');
     try {
-      const r = await fetch(URL_API + '?clave=' + encodeURIComponent(CLAVE));
-      const j = await r.json();
-      if (!j.ok) return alert('Error: ' + j.error);
-      encabezados = j.encabezados;
-      filas = j.datos;
-      depositos = j.depositos || [];
-      
-      actualizarSelectDepositos();
-      armarFormularioAgregar();
-      dibujar();
+      const j = await api();
+      if (!j.ok) {
+        if (j.error === 'Clave incorrecta') { cerrarSesion('La clave cambió, ingresá de nuevo.'); return false; }
+        alert('Error: ' + j.error);
+        return false;
+      }
+      aplicarDatos(j);
       mostrarMsg('¡Datos actualizados ✔!');
+      return true;
     } catch (e) {
       alert('No se pudo conectar: ' + e);
+      return false;
     }
+  }
+
+  function aplicarDatos(j) {
+    encabezados = j.encabezados;
+    filas = j.datos;
+    depositos = j.depositos || [];
+    hProd = encabezados.find(h => String(h).toLowerCase().includes('producto')) || encabezados[0];
+    hDep = encabezados.find(h => /dep[oó]sito/i.test(h)) || encabezados[1];
+    hCant = encabezados.find(h => String(h).toLowerCase().includes('cantidad')) || encabezados[2];
+    hMin = encabezados.find(h => /m[ií]nimo/i.test(h)) || '';
+    actualizarSelectDepositos();
+    armarFormularioAgregar();
+    dibujar();
+  }
+
+  async function actualizarTodo() {
+    await cargar();
+    if (document.getElementById('vistaHistorial').style.display !== 'none') cargarHistorial();
   }
 
   function actualizarSelectDepositos() {
@@ -112,81 +270,212 @@
     sel.value = actual;
   }
 
-  async function enviar(datos) {
-    mostrarMsg('Guardando...');
-    try {
-      const r = await fetch(URL_API, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ clave: CLAVE, ...datos })
+  // ----- reposición -----
+  function minDe(f) {
+    if (!hMin) return 0;
+    const n = Number(f[hMin]);
+    return isNaN(n) ? 0 : n;
+  }
+  function esBajo(f) {
+    const m = minDe(f);
+    return m > 0 && (Number(f[hCant]) || 0) <= m;
+  }
+  function toggleReponer() {
+    soloReponer = !soloReponer;
+    dibujar();
+  }
+  function bajosDelFiltro() {
+    const depFiltro = document.getElementById('filtroDep').value;
+    return filas.filter(f => esBajo(f) && (depFiltro === 'todos' || String(f[hDep] || '').trim() === depFiltro));
+  }
+
+  function pedirWhatsApp() {
+    const bajos = bajosDelFiltro();
+    if (!bajos.length) { alert('No hay productos para reponer.'); return; }
+    const porDep = {};
+    bajos.forEach(f => {
+      const d = String(f[hDep] || '').trim() || 'Sin depósito';
+      (porDep[d] = porDep[d] || []).push(f);
+    });
+    let txt = '*Pedido de reposición*\n' + new Date().toLocaleDateString('es-AR') + '\n';
+    Object.keys(porDep).forEach(d => {
+      txt += '\n📦 ' + d + '\n';
+      porDep[d].forEach(f => {
+        txt += '• ' + f[hProd] + ' — hay ' + (Number(f[hCant]) || 0) + ', mínimo ' + minDe(f) + '\n';
       });
-      const j = await r.json();
-      if (!j.ok) { alert('Error: ' + j.error); return false; }
-      mostrarMsg('Guardado con éxito ✔');
-      return true;
+    });
+    const url = 'https://wa.me/' + WHATSAPP_NUMERO + '?text=' + encodeURIComponent(txt);
+    window.open(url, '_blank');
+  }
+
+  // ----- pestañas -----
+  function setVista(v) {
+    document.getElementById('vistaStock').style.display = v === 'stock' ? 'block' : 'none';
+    document.getElementById('vistaHistorial').style.display = v === 'historial' ? 'block' : 'none';
+    document.getElementById('tabStock').classList.toggle('activo', v === 'stock');
+    document.getElementById('tabHist').classList.toggle('activo', v === 'historial');
+    if (v === 'historial') cargarHistorial();
+  }
+
+  // ----- historial y deshacer -----
+  async function cargarHistorial() {
+    const cont = document.getElementById('lista-historial');
+    cont.textContent = 'Cargando...';
+    try {
+      const j = await api({ accion: 'historial', limite: 80 });
+      if (!j.ok) {
+        if (j.error === 'Clave incorrecta') { cerrarSesion('La clave cambió, ingresá de nuevo.'); return; }
+        cont.textContent = 'Error: ' + j.error;
+        return;
+      }
+      historial = j.datos || [];
+      dibujarHistorial();
     } catch (e) {
-      alert('Error de red: ' + e);
-      return false;
+      cont.textContent = 'No se pudo conectar: ' + e;
     }
   }
 
+  function puedeDeshacer(m) {
+    return !m.estado && ['Entrada', 'Salida', 'Ajuste'].indexOf(m.tipo) >= 0;
+  }
+
+  function textoCantidad(m) {
+    const n = Number(m.cantidad) || 0;
+    if (m.tipo === 'Entrada') return { t: '+' + n, c: 'mas' };
+    if (m.tipo === 'Salida') return { t: '−' + n, c: 'menos' };
+    if (m.tipo === 'Ajuste') return { t: (n > 0 ? '+' : '') + n, c: n >= 0 ? 'mas' : 'menos' };
+    return { t: n + ' u.', c: 'menos' };
+  }
+
+  function dibujarHistorial() {
+    const cont = document.getElementById('lista-historial');
+    cont.innerHTML = '';
+    if (!historial.length) { cont.textContent = 'Todavía no hay movimientos.'; return; }
+    const ICONOS = { Entrada: '🟢', Salida: '🔴', Ajuste: '✏️', Baja: '🗑' };
+    historial.forEach(m => {
+      const box = document.createElement('div');
+      box.className = 'mov' + ((m.estado === 'Deshecho') ? ' anulado' : '');
+
+      const top = document.createElement('div');
+      top.className = 'mov-top';
+
+      const izq = document.createElement('div');
+      const prod = document.createElement('div');
+      prod.className = 'mov-prod';
+      prod.textContent = (ICONOS[m.tipo] || '•') + ' ' + m.producto;
+      if (m.estado) {
+        const b = document.createElement('span');
+        b.className = 'badge';
+        b.textContent = m.estado;
+        prod.appendChild(b);
+      }
+      const meta = document.createElement('div');
+      meta.className = 'mov-meta';
+      meta.textContent = m.deposito + ' · ' + m.fecha + (m.usuario ? ' · ' + m.usuario : '') + (m.motivo ? ' · ' + m.motivo : '');
+      izq.appendChild(prod);
+      izq.appendChild(meta);
+
+      const q = textoCantidad(m);
+      const der = document.createElement('div');
+      der.className = 'mov-cant ' + q.c;
+      der.textContent = q.t;
+
+      top.appendChild(izq);
+      top.appendChild(der);
+      box.appendChild(top);
+
+      if (puedeDeshacer(m)) {
+        const bt = document.createElement('button');
+        bt.className = 'btn-mini';
+        bt.textContent = '↩ Deshacer';
+        bt.onclick = () => deshacer(m);
+        box.appendChild(bt);
+      }
+      cont.appendChild(box);
+    });
+  }
+
+  async function deshacer(m) {
+    const q = textoCantidad(m);
+    if (!confirm('¿Deshacer este movimiento?\n\n' + m.producto + ' (' + m.deposito + ')\n' + m.tipo + ' ' + q.t)) return;
+    if (await enviar({ accion: 'deshacer', id: m.id })) {
+      await cargarHistorial();
+      cargar();
+    }
+  }
+
+  function deshacerUltimo() {
+    const m = historial.find(puedeDeshacer);
+    if (!m) { alert('No hay movimientos para deshacer.'); return; }
+    deshacer(m);
+  }
+
+  // ----- pantalla de stock -----
   function dibujar() {
-    // Búsqueda flexible e inteligente (ignora tildes, mayúsculas y evalúa palabras clave independientes)
+    // Búsqueda inteligente (Tokenizada y sin tildes)
     const rawQuery = document.getElementById('buscar').value.toLowerCase().trim();
-    const tokens = rawQuery.normalize('NFD').replace(/[\u0300-\u036f]/g, "").split(/\s+/).filter(Boolean);
+    const tokens = rawQuery.normalize('NFD').replace(/[̀-ͯ]/g, "").split(/\s+/).filter(Boolean);
 
     const depFiltro = document.getElementById('filtroDep').value;
     const contenedor = document.getElementById('lista-tarjetas');
     contenedor.innerHTML = '';
 
-    // Encontrar nombres de columnas clave
-    const hProd = encabezados.find(h => h.toLowerCase().includes('producto')) || encabezados[0];
-    const hDep = encabezados.find(h => h.toLowerCase().includes('depósito') || h.toLowerCase().includes('deposito')) || encabezados[1];
-    const hCant = encabezados.find(h => h.toLowerCase().includes('cantidad')) || encabezados[2];
+    // botón Reponer
+    const nBajos = bajosDelFiltro().length;
+    const btnRep = document.getElementById('btnReponer');
+    btnRep.textContent = '⚠️ Reponer (' + nBajos + ')';
+    btnRep.classList.toggle('activo', soloReponer);
+    document.getElementById('btnWa').style.display = nBajos > 0 ? 'block' : 'none';
 
     const filtradas = filas.filter(f => {
-      // Unimos todo el texto de la fila normalizado para que encuentre coincidencias sin importar el orden o tildes
-      const textoFila = encabezados.map(h => String(f[h] || '')).join(' ').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, "");
+      const textoFila = encabezados.filter(h => h !== hMin).map(h => String(f[h] || '')).join(' ').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, "");
       const textoCoincide = tokens.every(token => textoFila.includes(token));
 
       const depCoincide = (depFiltro === 'todos' || String(f[hDep] || '').trim() === depFiltro);
-      return textoCoincide && depCoincide;
+      const repCoincide = !soloReponer || esBajo(f);
+      return textoCoincide && depCoincide && repCoincide;
     });
 
     document.getElementById('contadorProd').textContent = filtradas.length + ' productos encontrados';
 
     filtradas.forEach(f => {
+      const bajo = esBajo(f);
+      const cero = bajo && (Number(f[hCant]) || 0) === 0;
       const card = document.createElement('div');
-      card.className = 'card';
+      card.className = 'card' + (cero ? ' cero' : (bajo ? ' bajo' : ''));
 
-      // Cabecera de la tarjeta
       const header = document.createElement('div');
       header.className = 'card-header';
-      
+
       const info = document.createElement('div');
       const title = document.createElement('div');
       title.className = 'prod-name';
       title.textContent = f[hProd] || 'Sin nombre';
-      
+
       const subtitle = document.createElement('div');
       subtitle.className = 'prod-dep';
-      subtitle.textContent = f[hDep] || 'Sin depósito';
-      
+      subtitle.textContent = (f[hDep] || 'Sin depósito') + (bajo ? ' · ⚠️ ' + (cero ? 'Sin stock' : 'Stock bajo') + ' (mínimo ' + minDe(f) + ')' : '');
+
       info.appendChild(title);
       info.appendChild(subtitle);
 
       const qtyDiv = document.createElement('div');
       qtyDiv.className = 'prod-qty';
-      qtyDiv.innerHTML = `${f[hCant] || 0} <span class="qty-label">unidades</span>`;
+      const qNum = document.createElement('span');
+      qNum.textContent = f[hCant] || 0;
+      const qLabel = document.createElement('span');
+      qLabel.className = 'qty-label';
+      qLabel.textContent = 'unidades';
+      qtyDiv.appendChild(qNum);
+      qtyDiv.appendChild(qLabel);
 
       header.appendChild(info);
       header.appendChild(qtyDiv);
       card.appendChild(header);
 
-      // Control central de cantidades (+ / -)
       const qtyControl = document.createElement('div');
       qtyControl.className = 'qty-control';
-      
+
       const inputCant = document.createElement('input');
       inputCant.type = 'number';
       inputCant.value = '1';
@@ -202,7 +491,7 @@
       btnRestar.textContent = '- Restar';
       btnRestar.onclick = async () => {
         const val = Number(inputCant.value);
-        if (val > 0 && await enviar({ accion: 'sumar_restar', fila: f.fila, cantidad: -val })) cargar();
+        if (val > 0 && await enviar({ accion: 'sumar_restar', fila: f.fila, producto: f[hProd], cantidad: -val })) cargar();
       };
 
       const btnSumar = document.createElement('button');
@@ -210,18 +499,17 @@
       btnSumar.textContent = '+ Sumar';
       btnSumar.onclick = async () => {
         const val = Number(inputCant.value);
-        if (val > 0 && await enviar({ accion: 'sumar_restar', fila: f.fila, cantidad: val })) cargar();
+        if (val > 0 && await enviar({ accion: 'sumar_restar', fila: f.fila, producto: f[hProd], cantidad: val })) cargar();
       };
 
       rowBtns.appendChild(btnRestar);
       rowBtns.appendChild(btnSumar);
       card.appendChild(rowBtns);
 
-      // Más opciones (Editar campos o Borrar)
       const toggle = document.createElement('button');
       toggle.className = 'details-toggle';
       toggle.textContent = '▶ Más opciones (Editar / Borrar)';
-      
+
       const extra = document.createElement('div');
       extra.className = 'extra-details';
 
@@ -231,20 +519,24 @@
         toggle.textContent = visible ? '▶ Más opciones (Editar / Borrar)' : '▼ Ocultar opciones';
       };
 
-      // Campos editables individuales
       encabezados.forEach((h, i) => {
         const label = document.createElement('label');
         label.style.fontSize = '12px';
         label.style.display = 'block';
         label.style.marginTop = '6px';
-        label.textContent = h;
+        label.textContent = (h === hMin) ? h + ' (avisa cuando el stock llega a este número)' : h;
 
-        const inp = document.createElement('input');
-        inp.value = f[h] || '';
-        inp.style.marginBottom = '6px';
-        
-        // Si es la columna de depósito en el formulario de edición, la convertimos en un select con los depósitos existentes
-        if (h.toLowerCase().includes('depósito') || h.toLowerCase().includes('deposito')) {
+        const esNumerico = (h === hCant || h === hMin);
+
+        // guarda un cambio; si tocó cantidad o mínimo, recarga para ver alertas/colores al instante
+        const guardar = async (valor) => {
+          if (await enviar({ accion: 'actualizar', fila: f.fila, columna: i + 1, valor: valor, producto: f[hProd] })) {
+            f[h] = valor;
+            if (esNumerico) cargar();
+          }
+        };
+
+        if (/dep[oó]sito/i.test(h)) {
           const selDep = document.createElement('select');
           selDep.style.marginBottom = '6px';
           depositos.forEach(d => {
@@ -254,11 +546,15 @@
             if (d === f[h]) opt.selected = true;
             selDep.appendChild(opt);
           });
-          selDep.onchange = () => enviar({ accion: 'actualizar', fila: f.fila, columna: i + 1, valor: selDep.value });
+          selDep.onchange = () => guardar(selDep.value);
           extra.appendChild(label);
           extra.appendChild(selDep);
         } else {
-          inp.onchange = () => enviar({ accion: 'actualizar', fila: f.fila, columna: i + 1, valor: inp.value });
+          const inp = document.createElement('input');
+          inp.value = f[h] === undefined || f[h] === null ? '' : f[h];
+          inp.style.marginBottom = '6px';
+          if (esNumerico) { inp.type = 'number'; inp.min = '0'; }
+          inp.onchange = () => guardar(esNumerico ? Number(inp.value) : inp.value);
           extra.appendChild(label);
           extra.appendChild(inp);
         }
@@ -276,7 +572,10 @@
       btnDel.style.fontWeight = 'bold';
       btnDel.textContent = '🗑 Eliminar Producto';
       btnDel.onclick = async () => {
-        if (confirm('¿Seguro que deseas eliminar este producto?') && await enviar({ accion: 'borrar', fila: f.fila })) cargar();
+        if (!confirm('¿Seguro que deseas eliminar este producto?')) return;
+        const claveAdmin = prompt('Clave de administrador para eliminar:');
+        if (!claveAdmin) return;
+        if (await enviar({ accion: 'borrar', fila: f.fila, producto: f[hProd], claveAdmin: claveAdmin })) cargar();
       };
       extra.appendChild(btnDel);
 
@@ -289,15 +588,14 @@
   function armarFormularioAgregar() {
     const form = document.getElementById('formAdd');
     form.innerHTML = '';
-    
+
     encabezados.forEach(h => {
       const label = document.createElement('label');
       label.className = 'label-title';
       label.textContent = h;
       form.appendChild(label);
 
-      // Si el encabezado es el depósito, generamos un desplegable con los depósitos existentes
-      if (h.toLowerCase().includes('depósito') || h.toLowerCase().includes('deposito')) {
+      if (/dep[oó]sito/i.test(h)) {
         const select = document.createElement('select');
         select.name = h;
         depositos.forEach(d => {
@@ -311,8 +609,9 @@
         const inp = document.createElement('input');
         inp.placeholder = 'Ingrese ' + h;
         inp.name = h;
-        if (h.toLowerCase().includes('cantidad')) {
+        if (h.toLowerCase().includes('cantidad') || h === hMin) {
           inp.type = 'number';
+          inp.min = '0';
           inp.value = '0';
         }
         form.appendChild(inp);
@@ -338,7 +637,21 @@
     };
   }
 
-  cargar();
+  // ----- arranque -----
+  document.getElementById('btnEntrar').onclick = entrar;
+  document.getElementById('inClave').onkeydown = e => { if (e.key === 'Enter') entrar(); };
+
+  (async function iniciar() {
+    clave = lsGet('stock_clave');
+    usuario = lsGet('stock_usuario');
+    if (clave && usuario) {
+      document.getElementById('nombreUsuario').textContent = usuario;
+      const ok = await cargar();
+      if (!ok && !clave) return; // cerrarSesion ya mostró el login
+    } else {
+      mostrarLogin();
+    }
+  })();
 </script>
 </body>
 </html>
